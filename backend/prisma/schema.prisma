@@ -1,0 +1,58 @@
+// Prisma schema for the L'Oréal Claims Intelligence Engine.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ClaimStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum AssessmentDecision {
+  SUPPORTED
+  NOT_SUPPORTED
+  INCONCLUSIVE
+  NEEDS_HUMAN_REVIEW
+}
+
+model Claim {
+  id          String       @id @default(uuid()) @db.Uuid
+  productName String
+  claimText   String       @db.Text
+  category    String
+  status      ClaimStatus  @default(DRAFT)
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
+  assessments Assessment[]
+
+  @@index([status, createdAt])
+}
+
+model Assessment {
+  id              String             @id @default(uuid()) @db.Uuid
+  claimId         String             @db.Uuid
+  evidenceText    String             @db.Text
+  decision        AssessmentDecision
+  confidenceScore Float              @db.DoublePrecision
+  reasoning       String             @db.Text
+  limitations     String             @db.Text
+  modelVersion    String
+  promptVersion   String
+  humanReviewed   Boolean            @default(false)
+  reviewerNotes   String?            @db.Text
+  createdAt       DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime           @updatedAt @db.Timestamptz(3)
+  claim           Claim              @relation(fields: [claimId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([claimId, createdAt])
+  @@index([decision, createdAt])
+}
